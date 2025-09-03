@@ -5,13 +5,8 @@ public class Player : MonoBehaviour
 {
     [SerializeField] float accel;
     [SerializeField] float jumpSpeed;
-    [SerializeField] GameObject hint;
     [SerializeField] float rotateRatio;
     [SerializeField] Animator animator;
-    [SerializeField] GameObject fire;
-    [SerializeField] float fireSpeed;
-    [SerializeField] public int life = 10;
-    [SerializeField] float knockbackSpeed;
 
     public int lifeMax => 10;
 
@@ -35,15 +30,18 @@ public class Player : MonoBehaviour
     void Update()
     {
         var move = playerInput.actions["Move"].ReadValue<Vector2>();
+
+        // カメラの前方向と右方向
         var forward = Camera.main.transform.forward;
         var right = Camera.main.transform.right;
-
         forward.y = 0;
         right.y = 0;
         forward = forward.normalized;
         right = right.normalized;
 
-        var move3d = move.x * right + move.y * forward;
+        // TODO:move3dをカメラの向きを考慮したベクトルにする
+        var move3d = new Vector3(move.y, 0, -move.x);
+
         if (isGrounding && move3d != Vector3.zero)
         {
             rb.AddForce(move3d * accel, ForceMode.Acceleration);
@@ -52,19 +50,8 @@ public class Player : MonoBehaviour
 
         if (canJump && playerInput.actions["Jump"].WasPressedThisFrame())
         {
-            var vel = rb.linearVelocity;
-            vel.y = jumpSpeed;
-            rb.linearVelocity = vel;
+            // TODO:rb.linearVelocityを変更してジャンプ
         }
-
-        if (playerInput.actions["Attack"].WasCompletedThisFrame())
-        {
-            var f = Instantiate(fire);
-            f.SetActive(true);
-            f.transform.position = transform.TransformPoint(f.transform.localPosition);
-            f.GetComponent<Rigidbody>().linearVelocity = transform.forward * fireSpeed;
-        }
-        hint.SetActive(isGrounding);
 
         // アニメーターにスピードを与える
         animator.SetFloat("Speed", rb.linearVelocity.magnitude);
@@ -93,14 +80,6 @@ public class Player : MonoBehaviour
             if (normal.y > 0.9f)
             {
                 canJump = true;
-            }
-
-            // ダメージ処理
-            if (damageTime <= 0f && contact.otherCollider.gameObject.GetComponent<Enemy>() != null)
-            {
-                --life;
-                damageTime = damageTimeMax;
-                rb.AddForce(contact.normal * knockbackSpeed, ForceMode.Impulse);
             }
         }
     }
